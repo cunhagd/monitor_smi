@@ -1,0 +1,1 @@
+, "monitoramentogovernodeminas@gmail.com", "camilakifer@gmail.com", "alinegbh@gmail.com", "gustavo.medeiros@governo.mg.gov.br"

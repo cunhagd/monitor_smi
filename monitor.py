@@ -4,7 +4,7 @@ import smtplib
 from email.mime.text import MIMEText
 from datetime import datetime
 
-# Configurações do banco de dados (ajuste conforme necessário)
+# Configurações do banco de dados
 DB_CONFIG = {
     'dbname': 'railway',
     'user': 'postgres',
@@ -16,7 +16,9 @@ DB_CONFIG = {
 # Configurações de e-mail
 SENDER_EMAIL = "devssecom@gmail.com"
 SENDER_PASSWORD = "qzzo ymcg kkwn sztb"  # Use uma senha de app
-RECIPIENTS = ["devssecom@gmail.com", "gustavo.cunha@governo.mg.gov.br", "isabela.bento@governo.mg.gov.br", "monitoramentogovernodeminas@gmail.com", "camilakifer@gmail.com", "alinegbh@gmail.com", "gustavo.medeiros@governo.mg.gov.br"]  # Lista de destinatários
+RECIPIENTS = ["devssecom@gmail.com", "gustavo.cunha@governo.mg.gov.br", "isabela.bento@governo.mg.gov.br", 
+              "monitoramentogovernodeminas@gmail.com", "camilakifer@gmail.com", "alinegbh@gmail.com", 
+              "gustavo.medeiros@governo.mg.gov.br"]  # Lista de destinatários
 ERROR_RECIPIENT = ["gustavo.cunha@governo.mg.gov.br", "isabela.bento@governo.mg.gov.br"]  # E-mail para erros
 
 def get_max_id_from_db():
@@ -84,6 +86,9 @@ def monitor_system():
         # Passo 5: Calcular a diferença
         difference = max_id_db - last_id_file
         print(f"Diferença entre IDs: {difference}")
+
+        # Depuração: Confirmar os valores antes de enviar o e-mail
+        print(f"Verificando corpo do e-mail: Usando diferença = {difference}")
 
         # Passo 6: Enviar e-mail baseado na diferença
         if difference <= 0:
