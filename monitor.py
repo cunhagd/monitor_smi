@@ -16,7 +16,7 @@ DB_CONFIG = {
 # Configurações de e-mail
 SENDER_EMAIL = "devssecom@gmail.com"
 SENDER_PASSWORD = "qzzo ymcg kkwn sztb"  # Use uma senha de app
-RECIPIENTS = ["devssecom@gmail.com", "gustavo.cunha@governo.mg.gov.br", "isabela.bento@governo.mg.gov.br", 
+RECIPIENTS = ["devssecom@gmail.com", "gustavo.cunha@governo.mg.gov.br", "isabela.bento@governo.mg.gov.br",
               "monitoramentogovernodeminas@gmail.com", "camilakifer@gmail.com", "alinegbh@gmail.com", 
               "gustavo.medeiros@governo.mg.gov.br"]  # Lista de destinatários
 ERROR_RECIPIENT = ["gustavo.cunha@governo.mg.gov.br", "isabela.bento@governo.mg.gov.br"]  # E-mail para erros
