@@ -1,8 +1,22 @@
 import os
+import json
 import psycopg2
 import smtplib
 from email.mime.text import MIMEText
 from datetime import datetime
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+import logging
+
+# Configuração de logs
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(),  # Exibe logs no terminal
+        logging.FileHandler('monitor_debug.log')  # Salva logs em arquivo
+    ]
+)
 
 # Configurações do banco de dados
 DB_CONFIG = {
@@ -17,12 +31,28 @@ DB_CONFIG = {
 SENDER_EMAIL = "devssecom@gmail.com"
 SENDER_PASSWORD = "qzzo ymcg kkwn sztb"  # Use uma senha de app
 RECIPIENTS = ["devssecom@gmail.com", "gustavo.cunha@governo.mg.gov.br", "isabela.bento@governo.mg.gov.br",
-              "monitoramentogovernodeminas@gmail.com", "camilakifer@gmail.com", "alinegbh@gmail.com", 
+              "monitoramentogovernodeminas@gmail.com", "camilakifer@gmail.com", "alinegbh@gmail.com",
               "gustavo.medeiros@governo.mg.gov.br"]  # Lista de destinatários
 ERROR_RECIPIENT = ["gustavo.cunha@governo.mg.gov.br", "isabela.bento@governo.mg.gov.br"]  # E-mail para erros
 
+# Configurações do Google Sheets
+SHEET_ID = '1oU-1qLnJxctsEAd0oSN6UMCue6dTx14J0ULhvMopfLE'
+SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+
+# Determina o caminho do credentials.json dinamicamente
+if os.getenv('GITHUB_ACTIONS'):
+    # No GitHub Actions, carrega o secret e cria o arquivo temporariamente
+    creds_data = json.loads(os.getenv('GOOGLE_CREDENTIALS'))
+    with open('credentials.json', 'w') as f:
+        json.dump(creds_data, f)
+    CREDS_FILE = 'credentials.json'
+else:
+    # Localmente, usa o arquivo na raiz do projeto
+    CREDS_FILE = os.path.join(os.path.dirname(__file__), 'credentials.json')
+
 def get_max_id_from_db():
     """Conecta ao banco e retorna o maior ID da tabela 'noticias'."""
+    logging.debug("Iniciando conexão ao banco para buscar o maior ID...")
     try:
         conn = psycopg2.connect(**DB_CONFIG)
         cursor = conn.cursor()
@@ -30,33 +60,51 @@ def get_max_id_from_db():
         max_id = cursor.fetchone()[0] or 0  # Retorna 0 se NULL
         cursor.close()
         conn.close()
+        logging.debug(f"Maior ID no banco: {max_id}")
         return max_id
     except Exception as e:
-        raise Exception(f"Erro ao acessar o banco: {e}")
+        logging.error(f"Erro ao acessar o banco: {e}")
+        raise
 
-def get_last_id_from_file():
-    """Lê o último ID salvo no arquivo 'valor_id.txt' na raiz do projeto."""
-    file_path = os.path.join(os.path.dirname(__file__), 'valor_id.txt')
+def get_last_id_from_sheets():
+    """Lê o último ID salvo na célula A1 da planilha Google Sheets."""
+    logging.debug(f"Iniciando conexão com a planilha de ID {SHEET_ID}...")
     try:
-        with open(file_path, 'r') as file:
-            return int(file.read().strip())
-    except FileNotFoundError:
-        return 0  # Retorna 0 se o arquivo não existir
-    except ValueError:
-        return 0  # Retorna 0 se o valor no arquivo for inválido
+        creds = ServiceAccountCredentials.from_json_keyfile_name(CREDS_FILE, SCOPE)
+        client = gspread.authorize(creds)
+        sheet = client.open_by_key(SHEET_ID)
+        worksheet = sheet.get_worksheet(0)  # Assume a primeira aba
+        logging.debug("Aba da planilha selecionada")
 
-def save_id_to_file(id_value):
-    """Salva o novo ID no arquivo 'valor_id.txt' na raiz do projeto."""
-    file_path = os.path.join(os.path.dirname(__file__), 'valor_id.txt')
-    try:
-        os.makedirs(os.path.dirname(file_path) or '.', exist_ok=True)  # Cria o diretório se não existir
-        with open(file_path, 'w') as file:
-            file.write(str(id_value))
+        # Ler o valor da célula A1 (linha 1, coluna 1)
+        last_id = worksheet.acell('A1').value
+        last_id = int(last_id.strip()) if last_id and last_id.strip().isdigit() else 0
+        logging.debug(f"Último ID encontrado na célula A1: {last_id}")
+        return last_id
+    except FileNotFoundError as e:
+        logging.error(f"Arquivo de credenciais não encontrado: {e}")
+        raise
     except Exception as e:
-        raise Exception(f"Erro ao salvar no arquivo: {e}")
+        logging.error(f"Erro ao buscar ID na planilha: {e}")
+        raise
+
+def save_id_to_sheets(id_value):
+    """Salva o novo ID na célula A1 da planilha Google Sheets."""
+    logging.debug(f"Salvando novo ID {id_value} na planilha...")
+    try:
+        creds = ServiceAccountCredentials.from_json_keyfile_name(CREDS_FILE, SCOPE)
+        client = gspread.authorize(creds)
+        sheet = client.open_by_key(SHEET_ID)
+        worksheet = sheet.get_worksheet(0)
+        worksheet.update_acell('A1', str(id_value))  # Atualiza a célula A1 com o novo ID
+        logging.debug(f"Novo ID {id_value} salvo na célula A1 da planilha")
+    except Exception as e:
+        logging.error(f"Erro ao salvar ID na planilha: {e}")
+        raise
 
 def send_email(subject, body, recipients):
     """Envia e-mail usando SMTP do Gmail."""
+    logging.debug(f"Preparando envio de e-mail para {', '.join(recipients)}")
     msg = MIMEText(body)
     msg['Subject'] = subject
     msg['From'] = SENDER_EMAIL
@@ -67,9 +115,9 @@ def send_email(subject, body, recipients):
             server.starttls()
             server.login(SENDER_EMAIL, SENDER_PASSWORD)
             server.sendmail(SENDER_EMAIL, recipients, msg.as_string())
-        print(f"E-mail enviado para {', '.join(recipients)} com sucesso.")
+        logging.info(f"E-mail enviado para {', '.join(recipients)} com sucesso")
     except Exception as e:
-        print(f"Erro ao enviar e-mail: {e}")
+        logging.error(f"Erro ao enviar e-mail: {e}")
         raise
 
 def monitor_system():
@@ -79,9 +127,9 @@ def monitor_system():
         max_id_db = get_max_id_from_db()
         print(f"Maior ID no banco: {max_id_db}")
 
-        # Passo 4: Ler o último ID salvo no arquivo
-        last_id_file = get_last_id_from_file()
-        print(f"Último ID no arquivo: {last_id_file}")
+        # Passo 4: Ler o último ID salvo na planilha
+        last_id_file = get_last_id_from_sheets()
+        print(f"Último ID na planilha: {last_id_file}")
 
         # Passo 5: Calcular a diferença
         difference = max_id_db - last_id_file
@@ -100,9 +148,9 @@ def monitor_system():
             body = f"O Sistema de Monitoramento de Imprensa - SECOM captou {difference} notícias na última hora."
             send_email(subject, body, RECIPIENTS)
 
-        # Salvar o novo ID no arquivo para a próxima rodagem
-        save_id_to_file(max_id_db)
-        print(f"Novo ID ({max_id_db}) salvo em valor_id.txt para a próxima execução.")
+        # Salvar o novo ID na planilha para a próxima rodagem
+        save_id_to_sheets(max_id_db)
+        print(f"Novo ID ({max_id_db}) salvo na planilha para a próxima execução.")
 
     except Exception as e:
         subject = "Erro no Sistema de Monitoramento de Imprensa - SECOM"

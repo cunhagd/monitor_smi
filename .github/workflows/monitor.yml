@@ -12,6 +12,11 @@ jobs:
       - name: Checkout código
         uses: actions/checkout@v4
 
+      - name: Set up credentials
+        run: echo "$GOOGLE_CREDENTIALS" > credentials.json
+        env:
+          GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -37,4 +42,4 @@ jobs:
         if: always()
         with:
           name: monitoring-logs
-          path: output.log
+          path: monitor_debug.log
