@@ -2,8 +2,7 @@ name: Monitoramento SECOM
 
 on:
   schedule:
-    - cron: '30 * * * *'  # Executa no minuto 30 de cada hora
-  workflow_dispatch:      # Adiciona a opção de disparo manual
+    - cron: '0 * * * *'  # Executa a cada hora (0 minutos de cada hora)
 
 jobs:
   monitor:
