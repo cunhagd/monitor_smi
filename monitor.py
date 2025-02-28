@@ -15,7 +15,7 @@ DB_CONFIG = {
 
 # Configurações de e-mail
 SENDER_EMAIL = "devssecom@gmail.com"
-SENDER_PASSWORD = "qzzo ymcg kkwn sztb"  # Use uma senha de app (veja abaixo como gerar)
+SENDER_PASSWORD = "qzzo ymcg kkwn sztb"  # Use uma senha de app
 RECIPIENTS = ["devssecom@gmail.com", "gustavo.cunha@governo.mg.gov.br", "isabela.bento@governo.mg.gov.br", "monitoramentogovernodeminas@gmail.com", "camilakifer@gmail.com", "alinegbh@gmail.com", "gustavo.medeiros@governo.mg.gov.br"]  # Lista de destinatários
 ERROR_RECIPIENT = ["gustavo.cunha@governo.mg.gov.br", "isabela.bento@governo.mg.gov.br"]  # E-mail para erros
 
@@ -33,9 +33,10 @@ def get_max_id_from_db():
         raise Exception(f"Erro ao acessar o banco: {e}")
 
 def get_last_id_from_file():
-    """Lê o último ID salvo no arquivo 'valor_id.txt'."""
+    """Lê o último ID salvo no arquivo 'valor_id.txt' na raiz do projeto."""
+    file_path = os.path.join(os.path.dirname(__file__), 'valor_id.txt')
     try:
-        with open(r"C:\Users\m1603994\monitor_smi\valor_id.txt", 'r') as file:
+        with open(file_path, 'r') as file:
             return int(file.read().strip())
     except FileNotFoundError:
         return 0  # Retorna 0 se o arquivo não existir
@@ -43,9 +44,11 @@ def get_last_id_from_file():
         return 0  # Retorna 0 se o valor no arquivo for inválido
 
 def save_id_to_file(id_value):
-    """Salva o novo ID no arquivo 'valor_id.txt'."""
+    """Salva o novo ID no arquivo 'valor_id.txt' na raiz do projeto."""
+    file_path = os.path.join(os.path.dirname(__file__), 'valor_id.txt')
     try:
-        with open(r"C:\Users\m1603994\monitor_smi\valor_id.txt", 'w') as file:
+        os.makedirs(os.path.dirname(file_path) or '.', exist_ok=True)  # Cria o diretório se não existir
+        with open(file_path, 'w') as file:
             file.write(str(id_value))
     except Exception as e:
         raise Exception(f"Erro ao salvar no arquivo: {e}")
