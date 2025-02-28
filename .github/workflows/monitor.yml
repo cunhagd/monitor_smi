@@ -2,7 +2,7 @@ name: Monitoramento SECOM
 
 on:
   schedule:
-    - cron: '0 * * * *'  # Executa a cada hora (0 minutos de cada hora)
+    - cron: '30 * * * *'  # Executa a cada meia hora (ex.: 2:30, 3:30, 4:30)
 
 jobs:
   monitor:
